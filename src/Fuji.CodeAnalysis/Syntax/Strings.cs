@@ -1,0 +1,50 @@
+namespace Fuji.CodeAnalysis.Syntax;
+
+public static class Strings
+{
+    public const string AmpersandAmpersand = "&&";
+    public const string Ampersand = "&";
+    public const string BangEq = "!=";
+    public const string Bang = "!";
+    public const string Break = "break";
+    public const string Caret = "^";
+    public const string CloseBrace = "}";
+    public const string CloseBracket = "]";
+    public const string CloseParen = ")";
+    public const string Colon = ":";
+    public const string Comma = ",";
+    public const string Continue = "continue";
+    public const string Dot = ".";
+    public const string Else = "else";
+    public const string EqEq = "==";
+    public const string Eq = "=";
+    public const string False = "false";
+    public const string For = "for";
+    public const string Func = "func";
+    public const string GreaterEq = ">=";
+    public const string GreaterGreater = ">>";
+    public const string Greater = ">";
+    public const string If = "if";
+    public const string Interface = "interface";
+    public const string LessEq = "<=";
+    public const string LessLess = "<<";
+    public const string Less = "<";
+    public const string Let = "let";
+    public const string Loop = "loop";
+    public const string Minus = "-";
+    public const string Null = "null";
+    public const string OpenBrace = "{";
+    public const string OpenBracket = "[";
+    public const string OpenParen = "(";
+    public const string PipePipe = "||";
+    public const string Pipe = "|";
+    public const string Plus = "+";
+    public const string Question = "?";
+    public const string Return = "return";
+    public const string Semicolon = ";";
+    public const string Slash = "/";
+    public const string Star = "*";
+    public const string Struct = "struct";
+    public const string Tilde = "~";
+    public const string True = "true";
+}
