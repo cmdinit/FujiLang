@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Fuji.CodeAnalysis.Tests/Fuji.CodeAnalysis.Tests.csproj" />
+  <Project Path="Fuji.CodeAnalysis/Fuji.CodeAnalysis.csproj" />
+  <Project Path="Fuji.Compiler/Fuji.Compiler.csproj" />
+</Solution>
