@@ -48,6 +48,7 @@ public class Lexer
 
             text = _st.GetText();
             kind = SyntaxFacts.GetKeywordOrIdentifierKind(text);
+            text = kind != SyntaxKind.IdentifierToken ? Strings.GetInternedText(text) : text;
             return;
         }
 
