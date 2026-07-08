@@ -4,12 +4,14 @@ namespace Fuji.CodeAnalysis.Parser;
 
 public abstract class AbstractParser
 {
+    public readonly string Text;
     private readonly List<SyntaxToken> _tokens = new();
     private int _position = 0;
-    private int _length = 0;
+    private readonly int _length = 0;
 
     protected AbstractParser(string text)
     {
+        Text = text;
         var lexer = new Lexer(text);
         while (true)
         {

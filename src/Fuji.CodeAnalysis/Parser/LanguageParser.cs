@@ -69,40 +69,18 @@ public class LanguageParser : AbstractParser
         var funcKeyword = MatchToken(SyntaxKind.FuncKeyword);
         var identifier = MatchToken(SyntaxKind.IdentifierToken);
         var openParenToken = MatchToken(SyntaxKind.OpenParenToken);
-        var parameters = ParseParameterList();
+
+        ParameterListSyntax parameters = ParameterListSyntax.Empty;
+        if (Current.Kind != SyntaxKind.CloseParenToken)
+        {
+            var builder = ParameterListSyntax.GetBuilder();
+            ParseCommaSeparatedList(ParseParameter, builder, SyntaxKind.CloseParenToken);
+            parameters = builder.Build();
+        }
         var closeParenToken = MatchToken(SyntaxKind.CloseParenToken);
         var body = ParseBlock();
 
         return FunctionDeclarationSyntax.Create(funcKeyword, identifier, openParenToken, parameters, closeParenToken, body);
-    }
-
-    private ParameterListSyntax ParseParameterList()
-    {
-        var builder = ParameterListSyntax.GetBuilder();
-
-        while (true)
-        {
-            if (Current.Kind == SyntaxKind.CloseParenToken || Current.Kind == SyntaxKind.EofToken)
-            {
-                break;
-            }
-
-            var parameter = ParseParameter();
-            if (parameter == null)
-            {
-                break;
-            }
-
-            builder.AddNode(parameter);
-
-            if (Current.Kind == SyntaxKind.CommaToken)
-            {
-                var commaToken = EatToken();
-                builder.AddSeparator(commaToken);
-            }
-        }
-
-        return builder.Build();
     }
 
     private ParameterSyntax ParseParameter()
@@ -112,35 +90,6 @@ public class LanguageParser : AbstractParser
         var type = ParseType();
 
         return ParameterSyntax.Create(identifier, colonToken, type);
-    }
-
-    private ArgumentListSyntax ParseArgumentList()
-    {
-        var builder = ArgumentListSyntax.GetBuilder();
-
-        while (true)
-        {
-            if (Current.Kind == SyntaxKind.CloseParenToken || Current.Kind == SyntaxKind.EofToken)
-            {
-                break;
-            }
-
-            var argument = ParseArgument();
-            if (argument == null)
-            {
-                break;
-            }
-
-            builder.AddNode(argument);
-
-            if (Current.Kind == SyntaxKind.CommaToken)
-            {
-                var commaToken = EatToken();
-                builder.AddSeparator(commaToken);
-            }
-        }
-
-        return builder.Build();
     }
 
     private ArgumentSyntax ParseArgument()
@@ -205,7 +154,15 @@ public class LanguageParser : AbstractParser
             if (Current.Kind == SyntaxKind.OpenParenToken)
             {
                 var openParenToken = EatToken();
-                var argumentList = ParseArgumentList();
+                var argumentList = ArgumentListSyntax.Empty;
+
+                if (Current.Kind != SyntaxKind.CloseParenToken)
+                {
+                    var builder = ArgumentListSyntax.GetBuilder();
+                    ParseCommaSeparatedList(ParseArgument, builder, SyntaxKind.CloseParenToken);
+                    argumentList = builder.Build();
+                }
+
                 var closeParenToken = MatchToken(SyntaxKind.CloseParenToken);
                 expression = new InvocationExpressionSyntax(expression, openParenToken, argumentList, closeParenToken);
                 continue;
@@ -291,7 +248,7 @@ public class LanguageParser : AbstractParser
         };
     }
 
-    private StatementSyntax ParseIfStatement()
+    private IfStatementSyntax ParseIfStatement()
     {
         var ifKeyword = MatchToken(SyntaxKind.IfKeyword);
         var openParenToken = MatchToken(SyntaxKind.OpenParenToken);
@@ -310,14 +267,14 @@ public class LanguageParser : AbstractParser
         return IfStatementSyntax.Create(ifKeyword, openParenToken, condition, closeParenToken, body, elseClause);
     }
 
-    private StatementSyntax ParseLoopStatement()
+    private LoopStatementSyntax ParseLoopStatement()
     {
         var loopKeyword = MatchToken(SyntaxKind.LoopKeyword);
         var body = ParseStatement() ?? ParseEmptyStatement();
         return LoopStatementSyntax.Create(loopKeyword, body);
     }
 
-    private StatementSyntax ParseForeachStatement()
+    private ForeachStatementSyntax ParseForeachStatement()
     {
         var foreachKeyword = MatchToken(SyntaxKind.ForeachKeyword);
         var openParenToken = MatchToken(SyntaxKind.OpenParenToken);
@@ -337,7 +294,7 @@ public class LanguageParser : AbstractParser
             body);
     }
 
-    private StatementSyntax ParseReturnStatement()
+    private ReturnStatementSyntax ParseReturnStatement()
     {
         var returnKeyword = MatchToken(SyntaxKind.ReturnKeyword);
 
@@ -351,27 +308,27 @@ public class LanguageParser : AbstractParser
         return ReturnStatementSyntax.Create(returnKeyword, expression, semicolonToken);
     }
 
-    private StatementSyntax ParseBreakStatement()
+    private BreakStatementSyntax ParseBreakStatement()
     {
         var breakKeyword = MatchToken(SyntaxKind.BreakKeyword);
         var semicolonToken = MatchToken(SyntaxKind.SemicolonToken);
         return BreakStatementSyntax.Create(breakKeyword, semicolonToken);
     }
 
-    private StatementSyntax ParseContinueStatement()
+    private ContinueStatementSyntax ParseContinueStatement()
     {
         var continueKeyword = MatchToken(SyntaxKind.ContinueKeyword);
         var semicolonToken = MatchToken(SyntaxKind.SemicolonToken);
         return ContinueStatementSyntax.Create(continueKeyword, semicolonToken);
     }
 
-    private StatementSyntax ParseEmptyStatement()
+    private EmptyStatementSyntax ParseEmptyStatement()
     {
         var semicolonToken = MatchToken(SyntaxKind.SemicolonToken);
         return EmptyStatementSyntax.Create(semicolonToken);
     }
 
-    private StatementSyntax ParseExpressionStatement()
+    private ExpressionStatementSyntax ParseExpressionStatement()
     {
         var expression = ParseExpression();
         var semicolonToken = MatchToken(SyntaxKind.SemicolonToken);
@@ -402,7 +359,7 @@ public class LanguageParser : AbstractParser
         return builder.Build();
     }
 
-    private MemberDeclarationSyntax? ParseMemberDeclaration()
+    private FieldDeclarationSyntax? ParseMemberDeclaration()
     {
         while (true)
         {
@@ -411,7 +368,7 @@ public class LanguageParser : AbstractParser
                 return null;
             }
 
-            if (Current.Kind == SyntaxKind.IdentifierToken)
+            if (Current.Kind == SyntaxKind.IdentifierToken || Current.Kind == SyntaxKind.ColonToken)
             {
                 return ParseFieldDeclaration();
             }
@@ -442,5 +399,32 @@ public class LanguageParser : AbstractParser
 
         var identifierToken = MatchToken(SyntaxKind.IdentifierToken);
         return IdentifierNameSyntax.Create(identifierToken);
+    }
+
+    private void ParseCommaSeparatedList<TNode, TList>(Func<TNode?> parseNode, SeparatedListSyntaxBuilder<TNode, TList> builder, SyntaxKind terminatorKind)
+        where TNode : SyntaxNode
+        where TList : ListSyntax
+    {
+        while (true)
+        {
+            if (Current.Kind == terminatorKind || Current.Kind == SyntaxKind.EofToken)
+            {
+                break;
+            }
+
+            var node = parseNode();
+            if (node == null)
+            {
+                break;
+            }
+
+            builder.AddNode(node);
+
+            if (Current.Kind == SyntaxKind.CommaToken)
+            {
+                var commaToken = EatToken();
+                builder.AddSeparator(commaToken);
+            }
+        }
     }
 }
