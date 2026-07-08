@@ -2,6 +2,8 @@
 
 using System.Reflection;
 using Fuji.CodeAnalysis.Parser;
+using Fuji.CodeAnalysis.Semantics;
+using Fuji.CodeAnalysis.Symbols;
 using Fuji.CodeAnalysis.Syntax;
 
 [TestClass]
@@ -204,6 +206,141 @@ public sealed class Test1
         Assert.AreEqual("entry", foreachStatement.IdentifierToken.Text);
         Assert.IsInstanceOfType<IdentifierNameSyntax>(foreachStatement.Expression);
         Assert.IsInstanceOfType<BlockSyntax>(foreachStatement.Body);
+    }
+
+    [TestMethod]
+    public void Compilation_BindsSourceSymbolsForDeclarations()
+    {
+        var source = """
+            struct Point {
+                x: int;
+                y: Unknown;
+            }
+
+            func move(dx: int, point: Point) {
+            }
+            """;
+
+        var syntaxTree = new ParsedSyntaxTree(new Fuji.CodeAnalysis.Text.SourceText(source));
+        var compilation = Compilation.Create([syntaxTree]);
+        var model = compilation.GetSemanticModel(syntaxTree);
+
+        Assert.AreEqual(1, model.NamedTypes.Count);
+        Assert.AreEqual(1, model.Methods.Count);
+
+        var structDecl = Assert.IsInstanceOfType<StructDeclarationSyntax>(syntaxTree.Root.Declarations.GetSlot(0));
+        var typeSymbol = Assert.IsInstanceOfType<INamedTypeSymbol>(model.GetDeclaredSymbol(structDecl));
+        Assert.AreEqual("Point", typeSymbol.Name);
+        Assert.AreEqual(2, typeSymbol.Fields.Count);
+
+        var firstField = typeSymbol.Fields[0];
+        var secondField = typeSymbol.Fields[1];
+        Assert.AreEqual("x", firstField.Name);
+        Assert.AreEqual("int", firstField.Type.Name);
+        Assert.AreEqual(TypeKind.Builtin, firstField.Type.TypeKind);
+
+        Assert.AreEqual("y", secondField.Name);
+        Assert.AreEqual(TypeKind.Error, secondField.Type.TypeKind);
+        Assert.IsInstanceOfType<IErrorTypeSymbol>(secondField.Type);
+
+        var functionDecl = Assert.IsInstanceOfType<FunctionDeclarationSyntax>(syntaxTree.Root.Declarations.GetSlot(1));
+        var methodSymbol = Assert.IsInstanceOfType<IMethodSymbol>(model.GetDeclaredSymbol(functionDecl));
+        Assert.AreEqual("move", methodSymbol.Name);
+        Assert.AreEqual(2, methodSymbol.Parameters.Count);
+        Assert.AreEqual("int", methodSymbol.Parameters[0].Type.Name);
+        Assert.AreEqual("Point", methodSymbol.Parameters[1].Type.Name);
+
+        var parameterDecl = Assert.IsInstanceOfType<ParameterSyntax>(functionDecl.Parameters.GetSlot(0));
+        var parameterSymbol = Assert.IsInstanceOfType<IParameterSymbol>(model.GetDeclaredSymbol(parameterDecl));
+        Assert.AreEqual(0, parameterSymbol.Ordinal);
+        Assert.AreEqual("dx", parameterSymbol.Name);
+    }
+
+    [TestMethod]
+    public void SemanticModel_ResolvesExpressionSymbolAndTypeInfo()
+    {
+        var source = """
+            struct Point {
+                x: int;
+            }
+
+            func move(p: Point) {
+                p;
+                p.x;
+                move(p: p);
+                missing;
+                "hello";
+                1;
+                true;
+            }
+            """;
+
+        var syntaxTree = new ParsedSyntaxTree(new Fuji.CodeAnalysis.Text.SourceText(source));
+        var compilation = Compilation.Create([syntaxTree]);
+        var model = compilation.GetSemanticModel(syntaxTree);
+
+        var functionDecl = Assert.IsInstanceOfType<FunctionDeclarationSyntax>(syntaxTree.Root.Declarations.GetSlot(1));
+
+        var statement0 = Assert.IsInstanceOfType<ExpressionStatementSyntax>(functionDecl.Body.Statements.GetSlot(0));
+        var pIdentifier = Assert.IsInstanceOfType<IdentifierNameSyntax>(statement0.Expression);
+        var pSymbol = Assert.IsInstanceOfType<IParameterSymbol>(model.GetSymbolInfo(pIdentifier));
+        Assert.AreEqual("p", pSymbol.Name);
+        Assert.AreEqual("Point", model.GetTypeInfo(pIdentifier).Name);
+
+        var statement1 = Assert.IsInstanceOfType<ExpressionStatementSyntax>(functionDecl.Body.Statements.GetSlot(1));
+        var memberAccess = Assert.IsInstanceOfType<MemberAccessExpressionSyntax>(statement1.Expression);
+        var fieldSymbol = Assert.IsInstanceOfType<IFieldSymbol>(model.GetSymbolInfo(memberAccess));
+        Assert.AreEqual("x", fieldSymbol.Name);
+        Assert.AreEqual("int", model.GetTypeInfo(memberAccess).Name);
+
+        var statement2 = Assert.IsInstanceOfType<ExpressionStatementSyntax>(functionDecl.Body.Statements.GetSlot(2));
+        var invocation = Assert.IsInstanceOfType<InvocationExpressionSyntax>(statement2.Expression);
+        var methodSymbol = Assert.IsInstanceOfType<IMethodSymbol>(model.GetSymbolInfo(invocation));
+        Assert.AreEqual("move", methodSymbol.Name);
+
+        var statement3 = Assert.IsInstanceOfType<ExpressionStatementSyntax>(functionDecl.Body.Statements.GetSlot(3));
+        var missingIdentifier = Assert.IsInstanceOfType<IdentifierNameSyntax>(statement3.Expression);
+        Assert.IsNull(model.GetSymbolInfo(missingIdentifier));
+        Assert.AreEqual(TypeKind.Error, model.GetTypeInfo(missingIdentifier).TypeKind);
+
+        var statement4 = Assert.IsInstanceOfType<ExpressionStatementSyntax>(functionDecl.Body.Statements.GetSlot(4));
+        var stringLiteral = Assert.IsInstanceOfType<LiteralExpressionSyntax>(statement4.Expression);
+        Assert.AreEqual("string", model.GetTypeInfo(stringLiteral).Name);
+
+        var statement5 = Assert.IsInstanceOfType<ExpressionStatementSyntax>(functionDecl.Body.Statements.GetSlot(5));
+        var numberLiteral = Assert.IsInstanceOfType<LiteralExpressionSyntax>(statement5.Expression);
+        Assert.AreEqual("int", model.GetTypeInfo(numberLiteral).Name);
+
+        var statement6 = Assert.IsInstanceOfType<ExpressionStatementSyntax>(functionDecl.Body.Statements.GetSlot(6));
+        var boolLiteral = Assert.IsInstanceOfType<LiteralExpressionSyntax>(statement6.Expression);
+        Assert.AreEqual("bool", model.GetTypeInfo(boolLiteral).Name);
+    }
+
+    [TestMethod]
+    public void SemanticModel_ResolvesTypeSyntaxInfo()
+    {
+        var source = """
+            struct Point {
+                x: int;
+            }
+
+            func move(p: Point) {
+            }
+            """;
+
+        var syntaxTree = new ParsedSyntaxTree(new Fuji.CodeAnalysis.Text.SourceText(source));
+        var compilation = Compilation.Create([syntaxTree]);
+        var model = compilation.GetSemanticModel(syntaxTree);
+
+        var structDecl = Assert.IsInstanceOfType<StructDeclarationSyntax>(syntaxTree.Root.Declarations.GetSlot(0));
+        var fieldDecl = Assert.IsInstanceOfType<FieldDeclarationSyntax>(structDecl.Declarations.GetSlot(0));
+        var builtinType = model.GetTypeInfo(fieldDecl.Type);
+        Assert.AreEqual("int", builtinType.Name);
+
+        var functionDecl = Assert.IsInstanceOfType<FunctionDeclarationSyntax>(syntaxTree.Root.Declarations.GetSlot(1));
+        var parameterDecl = Assert.IsInstanceOfType<ParameterSyntax>(functionDecl.Parameters.GetSlot(0));
+        var namedType = Assert.IsInstanceOfType<INamedTypeSymbol>(model.GetSymbolInfo(parameterDecl.Type));
+        Assert.AreEqual("Point", namedType.Name);
     }
 
     private static ExpressionSyntax ParseExpression(string source)
