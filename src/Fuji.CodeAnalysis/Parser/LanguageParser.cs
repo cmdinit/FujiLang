@@ -107,10 +107,10 @@ public class LanguageParser : AbstractParser
 
     private ExpressionSyntax ParseExpression()
     {
-        return ParseBinaryExpression();
+        return ParseSubExpression();
     }
 
-    private ExpressionSyntax ParseBinaryExpression(int parentPrecedence = 0)
+    private ExpressionSyntax ParseSubExpression(int parentPrecedence = 0)
     {
         var left = ParseUnaryOrPostfixExpression();
 
@@ -123,7 +123,7 @@ public class LanguageParser : AbstractParser
             }
 
             var operatorToken = EatToken();
-            var right = ParseBinaryExpression(precedence);
+            var right = ParseSubExpression(precedence);
             left = BinaryExpressionSyntax.Create(left, operatorToken, right);
         }
 
@@ -148,61 +148,58 @@ public class LanguageParser : AbstractParser
     {
         while (true)
         {
-            if (Current.Kind == SyntaxKind.DotToken)
+            switch (Current.Kind)
             {
-                var dotToken = EatToken();
-                var identifierToken = MatchToken(SyntaxKind.IdentifierToken);
-                expression = new MemberAccessExpressionSyntax(expression, dotToken, identifierToken);
-                continue;
+                case SyntaxKind.DotToken:
+                    var dotToken = EatToken();
+                    var identifierToken = MatchToken(SyntaxKind.IdentifierToken);
+                    expression = new MemberAccessExpressionSyntax(expression, dotToken, identifierToken);
+                    break;
+
+                case SyntaxKind.OpenParenToken:
+                    var openParenToken = EatToken();
+                    var argumentList = ArgumentListSyntax.Empty;
+
+                    if (Current.Kind != SyntaxKind.CloseParenToken)
+                    {
+                        var builder = ArgumentListSyntax.GetBuilder();
+                        ParseCommaSeparatedList(ParseArgument, builder, SyntaxKind.CloseParenToken);
+                        argumentList = builder.Build();
+                    }
+
+                    var closeParenToken = MatchToken(SyntaxKind.CloseParenToken);
+                    expression = new InvocationExpressionSyntax(expression, openParenToken, argumentList, closeParenToken);
+                    break;
+
+                default:
+                    return expression;
             }
-
-            if (Current.Kind == SyntaxKind.OpenParenToken)
-            {
-                var openParenToken = EatToken();
-                var argumentList = ArgumentListSyntax.Empty;
-
-                if (Current.Kind != SyntaxKind.CloseParenToken)
-                {
-                    var builder = ArgumentListSyntax.GetBuilder();
-                    ParseCommaSeparatedList(ParseArgument, builder, SyntaxKind.CloseParenToken);
-                    argumentList = builder.Build();
-                }
-
-                var closeParenToken = MatchToken(SyntaxKind.CloseParenToken);
-                expression = new InvocationExpressionSyntax(expression, openParenToken, argumentList, closeParenToken);
-                continue;
-            }
-
-            break;
         }
-
-        return expression;
     }
 
     private ExpressionSyntax ParseTermExpression()
     {
-        if (Current.Kind == SyntaxKind.OpenParenToken)
+        switch (Current.Kind)
         {
-            var openParenToken = EatToken();
-            var expression = ParseExpression();
-            var closeParenToken = MatchToken(SyntaxKind.CloseParenToken);
-            return new ParenthesisExpressionSyntax(openParenToken, expression, closeParenToken);
-        }
+            case SyntaxKind.OpenParenToken:
+                var openParenToken = EatToken();
+                var expression = ParseExpression();
+                return new ParenthesisExpressionSyntax(openParenToken, expression, MatchToken(SyntaxKind.CloseParenToken));
 
-        if (Current.Kind.GetLiteralExpressionKind() != null)
-        {
-            var literalToken = EatToken();
-            return LiteralExpressionSyntax.Create(literalToken);
-        }
+            case SyntaxKind.StringLiteralToken:
+            case SyntaxKind.NumberLiteralToken:
+            case SyntaxKind.CharLiteralToken:
+            case SyntaxKind.TrueKeyword:
+            case SyntaxKind.FalseKeyword:
+            case SyntaxKind.NullKeyword:
+                return LiteralExpressionSyntax.Create(EatToken());
 
-        if (Current.Kind == SyntaxKind.IdentifierToken)
-        {
-            var identifierToken = EatToken();
-            return IdentifierNameSyntax.Create(identifierToken);
-        }
+            case SyntaxKind.IdentifierToken:
+                return IdentifierNameSyntax.Create(EatToken());
 
-        var missingIdentifierToken = MatchToken(SyntaxKind.IdentifierToken);
-        return IdentifierNameSyntax.Create(missingIdentifierToken);
+            default:
+                return IdentifierNameSyntax.Create(MatchToken(SyntaxKind.IdentifierToken));
+        }
     }
 
     private BlockSyntax ParseBlock()
