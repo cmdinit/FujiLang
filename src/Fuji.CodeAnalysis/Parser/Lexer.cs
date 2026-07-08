@@ -12,6 +12,11 @@ public class Lexer
         _st = new SourceText(text);
     }
 
+    public Lexer(SourceText text)
+    {
+        _st = text;
+    }
+
     public SyntaxToken Lex()
     {
         LexTrivia(out var leadingTriviaLength);

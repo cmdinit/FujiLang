@@ -1,5 +1,7 @@
 namespace Fuji.CodeAnalysis.Syntax;
 
+#region ListSyntax
+
 public abstract class ListSyntax : SyntaxNode
 {
     protected SyntaxNode[] _children = [];
@@ -122,3 +124,56 @@ public class MemberDeclarationListSyntax : ListSyntax
         return new MemberDeclarationListSyntax(declarations);
     }
 }
+
+#endregion
+
+#region Builders
+
+public class SyntaxListBuilder<TNode, TList> where TNode : SyntaxNode where TList : ListSyntax
+{
+    private readonly List<TNode> _nodes = [];
+    private readonly Func<TNode[], TList> _create;
+
+    public SyntaxListBuilder(Func<TNode[], TList> create)
+    {
+        _create = create;
+    }
+
+    public void Add(TNode node)
+    {
+        _nodes.Add(node);
+    }
+
+    public TList Build()
+    {
+        return _create(_nodes.ToArray());
+    }
+}
+
+public class SeparatedListSyntaxBuilder<TNode, TList> where TNode : SyntaxNode where TList : ListSyntax
+{
+    private readonly List<SyntaxNode> _children = new();
+    private readonly Func<SyntaxNode[], TList> _createNode;
+
+    public SeparatedListSyntaxBuilder(Func<SyntaxNode[], TList> createNode)
+    {
+        _createNode = createNode;
+    }
+
+    public void AddNode(TNode node)
+    {
+        _children.Add(node);
+    }
+
+    public void AddSeparator(SyntaxToken separator)
+    {
+        _children.Add(separator);
+    }
+
+    public TList Build()
+    {
+        return _createNode(_children.ToArray());
+    }
+}
+
+#endregion

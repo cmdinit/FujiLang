@@ -1,10 +1,15 @@
 using Fuji.CodeAnalysis.Syntax;
+using Fuji.CodeAnalysis.Text;
 
 namespace Fuji.CodeAnalysis.Parser;
 
 public class LanguageParser : AbstractParser
 {
-    public LanguageParser(string text) : base(text)
+    public LanguageParser(SourceText text) : base(text)
+    {
+    }
+
+    public LanguageParser(string text) : base(new SourceText(text))
     {
     }
 
