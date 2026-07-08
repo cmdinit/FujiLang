@@ -2,12 +2,12 @@ namespace Fuji.CodeAnalysis.Syntax;
 
 public abstract class ListSyntax : SyntaxNode
 {
-    protected List<SyntaxNode> _children = new();
+    protected SyntaxNode[] _children = Array.Empty<SyntaxNode>();
 
-    protected ListSyntax(SyntaxKind kind, List<SyntaxNode> children) : base(kind)
+    protected ListSyntax(SyntaxKind kind, SyntaxNode[] children) : base(kind)
     {
         _children = children;
-        SlotCount = _children.Count;
+        SlotCount = _children.Length;
         foreach (var child in _children)
         {
             AdjustWidth(child);
@@ -16,9 +16,11 @@ public abstract class ListSyntax : SyntaxNode
 
     public override SyntaxNode? GetSlot(int index)
     {
-        if (index < 0 || index >= _children.Count)
+        if (index < 0 || index >= _children.Length)
             return null;
 
         return _children[index];
     }
+
+    public override bool IsList => true;
 }

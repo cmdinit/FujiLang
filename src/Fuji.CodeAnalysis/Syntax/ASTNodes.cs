@@ -17,6 +17,7 @@ public class PrefixUnaryExpressionSyntax : ExpressionSyntax
     private PrefixUnaryExpressionSyntax(SyntaxKind kind, SyntaxToken operatorToken, ExpressionSyntax operand)
         : base(kind)
     {
+        SlotCount = 2;
         OperatorToken = operatorToken;
         Operand = operand;
         AdjustWidth(OperatorToken);
@@ -53,6 +54,7 @@ public class BinaryExpressionSyntax : ExpressionSyntax
     private BinaryExpressionSyntax(SyntaxKind kind, ExpressionSyntax left, SyntaxToken operatorToken, ExpressionSyntax right)
         : base(kind)
     {
+        SlotCount = 3;
         Left = left;
         OperatorToken = operatorToken;
         Right = right;
@@ -82,6 +84,7 @@ public class ParenthesisExpressionSyntax : ExpressionSyntax
     public ParenthesisExpressionSyntax(SyntaxToken openParenToken, ExpressionSyntax expression, SyntaxToken closeParenToken)
         : base(SyntaxKind.ParenthesizedExpression)
     {
+        SlotCount = 3;
         OpenParenToken = openParenToken;
         Expression = expression;
         CloseParenToken = closeParenToken;
@@ -111,6 +114,7 @@ public class MemberAccessExpressionSyntax : ExpressionSyntax
     public MemberAccessExpressionSyntax(ExpressionSyntax expression, SyntaxToken dotToken, SyntaxToken identifierToken)
         : base(SyntaxKind.MemberAccessExpression)
     {
+        SlotCount = 3;
         Expression = expression;
         DotToken = dotToken;
         IdentifierToken = identifierToken;
@@ -151,6 +155,7 @@ public class LiteralExpressionSyntax : ExpressionSyntax
     private LiteralExpressionSyntax(SyntaxKind kind, SyntaxToken literalToken)
         : base(kind)
     {
+        SlotCount = 1;
         LiteralToken = literalToken;
         AdjustWidth(LiteralToken);
     }
@@ -172,6 +177,7 @@ public class InvocationExpressionSyntax : ExpressionSyntax
     public InvocationExpressionSyntax(ExpressionSyntax expression, SyntaxToken openParenToken, ArgumentListSyntax arguments, SyntaxToken closeParenToken)
         : base(SyntaxKind.InvocationExpression)
     {
+        SlotCount = 4;
         Expression = expression;
         OpenParenToken = openParenToken;
         Arguments = arguments;
@@ -200,21 +206,39 @@ public class InvocationExpressionSyntax : ExpressionSyntax
     }
 }
 
-public class ArgumentListSyntax : ListSyntax
+
+public class ArgumentSyntax : SyntaxNode
 {
-    public static SeparatedListSyntaxBuilder<ArgumentListSyntax> GetBuilder()
+    public static ArgumentSyntax Create(SyntaxToken identifier, SyntaxToken colonToken, ExpressionSyntax expression)
     {
-        return new SeparatedListSyntaxBuilder<ArgumentListSyntax>(Create);
+        return new ArgumentSyntax(SyntaxKind.Argument, identifier, colonToken, expression);
     }
 
-    private static ArgumentListSyntax Create(List<SyntaxNode> arguments)
+    private ArgumentSyntax(SyntaxKind kind, SyntaxToken identifier, SyntaxToken colonToken, ExpressionSyntax expression)
+        : base(kind)
     {
-        return new ArgumentListSyntax(arguments);
+        SlotCount = 3;
+        Identifier = identifier;
+        ColonToken = colonToken;
+        Expression = expression;
+        AdjustWidth(Identifier);
+        AdjustWidth(ColonToken);
+        AdjustWidth(Expression);
     }
 
-    private ArgumentListSyntax(List<SyntaxNode> arguments)
-        : base(SyntaxKind.ArgumentList, arguments)
+    public SyntaxToken Identifier { get; }
+    public SyntaxToken ColonToken { get; }
+    public ExpressionSyntax Expression { get; }
+
+    public override SyntaxNode? GetSlot(int index)
     {
+        return index switch
+        {
+            0 => Identifier,
+            1 => ColonToken,
+            2 => Expression,
+            _ => null
+        };
     }
 }
 
@@ -222,12 +246,13 @@ public class BlockSyntax : StatementSyntax
 {
     public static BlockSyntax Create(SyntaxToken openBraceToken, StatementListSyntax statements, SyntaxToken closeBraceToken)
     {
-        return new BlockSyntax(SyntaxKind.BlockStatement, openBraceToken, statements, closeBraceToken);
+        return new BlockSyntax(SyntaxKind.Block, openBraceToken, statements, closeBraceToken);
     }
 
     private BlockSyntax(SyntaxKind kind, SyntaxToken openBraceToken, StatementListSyntax statements, SyntaxToken closeBraceToken)
         : base(kind)
     {
+        SlotCount = 3;
         OpenBraceToken = openBraceToken;
         Statements = statements;
         CloseBraceToken = closeBraceToken;
@@ -252,23 +277,6 @@ public class BlockSyntax : StatementSyntax
     }
 }
 
-public class StatementListSyntax : ListSyntax
-{
-    public static SyntaxListBuilder<StatementListSyntax> GetBuilder()
-    {
-        return new SyntaxListBuilder<StatementListSyntax>(Create);
-    }
-
-    private StatementListSyntax(List<SyntaxNode> statements)
-        : base(SyntaxKind.StatementList, statements)
-    {
-    }
-    private static StatementListSyntax Create(List<SyntaxNode> statements)
-    {
-        return new StatementListSyntax(statements);
-    }
-}
-
 public class ExpressionStatementSyntax : StatementSyntax
 {
     public static ExpressionStatementSyntax Create(ExpressionSyntax expression, SyntaxToken semicolonToken)
@@ -279,6 +287,7 @@ public class ExpressionStatementSyntax : StatementSyntax
     private ExpressionStatementSyntax(SyntaxKind kind, ExpressionSyntax expression, SyntaxToken semicolonToken)
         : base(kind)
     {
+        SlotCount = 2;
         Expression = expression;
         SemicolonToken = semicolonToken;
         AdjustWidth(Expression);
@@ -309,6 +318,7 @@ public class ReturnStatementSyntax : StatementSyntax
     private ReturnStatementSyntax(SyntaxKind kind, SyntaxToken returnKeyword, ExpressionSyntax? expression, SyntaxToken semicolonToken)
         : base(kind)
     {
+        SlotCount = 3;
         ReturnKeyword = returnKeyword;
         Expression = expression;
         SemicolonToken = semicolonToken;
@@ -344,6 +354,7 @@ public class EmptyStatementSyntax : StatementSyntax
     private EmptyStatementSyntax(SyntaxKind kind, SyntaxToken semicolonToken)
         : base(kind)
     {
+        SlotCount = 1;
         SemicolonToken = semicolonToken;
         AdjustWidth(SemicolonToken);
     }
@@ -370,6 +381,7 @@ public class ContinueStatementSyntax : StatementSyntax
     private ContinueStatementSyntax(SyntaxKind kind, SyntaxToken continueKeyword, SyntaxToken semicolonToken)
         : base(kind)
     {
+        SlotCount = 2;
         ContinueKeyword = continueKeyword;
         SemicolonToken = semicolonToken;
         AdjustWidth(ContinueKeyword);
@@ -400,6 +412,7 @@ public class BreakStatementSyntax : StatementSyntax
     private BreakStatementSyntax(SyntaxKind kind, SyntaxToken breakKeyword, SyntaxToken semicolonToken)
         : base(kind)
     {
+        SlotCount = 2;
         BreakKeyword = breakKeyword;
         SemicolonToken = semicolonToken;
         AdjustWidth(BreakKeyword);
@@ -430,6 +443,7 @@ public class ElseClauseSyntax : SyntaxNode
     private ElseClauseSyntax(SyntaxKind kind, SyntaxToken elseKeyword, StatementSyntax statement)
         : base(kind)
     {
+        SlotCount = 2;
         ElseKeyword = elseKeyword;
         Statement = statement;
         AdjustWidth(ElseKeyword);
@@ -460,6 +474,7 @@ public class IfStatementSyntax : StatementSyntax
     private IfStatementSyntax(SyntaxKind kind, SyntaxToken ifKeyword, SyntaxToken openParenToken, ExpressionSyntax condition, SyntaxToken closeParenToken, StatementSyntax body, ElseClauseSyntax? elseClause)
         : base(kind)
     {
+        SlotCount = 6;
         IfKeyword = ifKeyword;
         OpenParenToken = openParenToken;
         Condition = condition;
@@ -507,6 +522,7 @@ public class LoopStatementSyntax : StatementSyntax
     private LoopStatementSyntax(SyntaxKind kind, SyntaxToken loopKeyword, StatementSyntax body)
         : base(kind)
     {
+        SlotCount = 2;
         LoopKeyword = loopKeyword;
         Body = body;
         AdjustWidth(LoopKeyword);
@@ -522,6 +538,80 @@ public class LoopStatementSyntax : StatementSyntax
         {
             0 => LoopKeyword,
             1 => Body,
+            _ => null
+        };
+    }
+}
+
+public class ForeachStatementSyntax : StatementSyntax
+{
+    public static ForeachStatementSyntax Create(
+        SyntaxToken foreachKeyword,
+        SyntaxToken openParenToken,
+        SyntaxToken identifierToken,
+        SyntaxToken colonToken,
+        ExpressionSyntax expression,
+        SyntaxToken closeParenToken,
+        StatementSyntax body)
+    {
+        return new ForeachStatementSyntax(
+            SyntaxKind.ForeachStatement,
+            foreachKeyword,
+            openParenToken,
+            identifierToken,
+            colonToken,
+            expression,
+            closeParenToken,
+            body);
+    }
+
+    private ForeachStatementSyntax(
+        SyntaxKind kind,
+        SyntaxToken foreachKeyword,
+        SyntaxToken openParenToken,
+        SyntaxToken identifierToken,
+        SyntaxToken colonToken,
+        ExpressionSyntax expression,
+        SyntaxToken closeParenToken,
+        StatementSyntax body)
+        : base(kind)
+    {
+        SlotCount = 7;
+        ForeachKeyword = foreachKeyword;
+        OpenParenToken = openParenToken;
+        IdentifierToken = identifierToken;
+        ColonToken = colonToken;
+        Expression = expression;
+        CloseParenToken = closeParenToken;
+        Body = body;
+        AdjustWidth(ForeachKeyword);
+        AdjustWidth(OpenParenToken);
+        AdjustWidth(IdentifierToken);
+        AdjustWidth(ColonToken);
+        AdjustWidth(Expression);
+        AdjustWidth(CloseParenToken);
+        AdjustWidth(Body);
+    }
+
+    public SyntaxToken ForeachKeyword { get; }
+    public SyntaxToken OpenParenToken { get; }
+    public SyntaxToken IdentifierToken { get; }
+    public SyntaxToken ColonToken { get; }
+    public ExpressionSyntax Expression { get; }
+    public SyntaxToken CloseParenToken { get; }
+    public StatementSyntax Body { get; }
+
+    public override SyntaxNode? GetSlot(int index)
+    {
+        return index switch
+        {
+            0 => ForeachKeyword,
+            1 => OpenParenToken,
+            2 => IdentifierToken,
+            3 => ColonToken,
+            4 => Expression,
+            5 => CloseParenToken,
+            6 => Body,
             _ => null
         };
     }
@@ -544,6 +634,7 @@ public class PredefinedTypeSyntax : TypeSyntax
     private PredefinedTypeSyntax(SyntaxKind kind, SyntaxToken keyword)
         : base(kind)
     {
+        SlotCount = 1;
         Keyword = keyword;
         AdjustWidth(Keyword);
     }
@@ -570,6 +661,7 @@ public class IdentifierNameSyntax : TypeSyntax
     private IdentifierNameSyntax(SyntaxKind kind, SyntaxToken identifier)
         : base(kind)
     {
+        SlotCount = 1;
         Identifier = identifier;
         AdjustWidth(Identifier);
     }
@@ -596,6 +688,7 @@ public class QualifiedNameSyntax : TypeSyntax
     private QualifiedNameSyntax(SyntaxKind kind, TypeSyntax left, SyntaxToken dotToken, SyntaxToken right)
         : base(kind)
     {
+        SlotCount = 3;
         Left = left;
         DotToken = dotToken;
         Right = right;
@@ -620,16 +713,17 @@ public class QualifiedNameSyntax : TypeSyntax
     }
 }
 
-public class FunctionDeclarationSyntax : DeclarationSyntax
+public class FunctionDeclarationSyntax : RootDeclarationSyntax
 {
-    public static FunctionDeclarationSyntax Create(SyntaxToken funcKeyword, SyntaxToken identifier, SyntaxToken openParenToken, ArgumentListSyntax parameters, SyntaxToken closeParenToken, BlockSyntax body)
+    public static FunctionDeclarationSyntax Create(SyntaxToken funcKeyword, SyntaxToken identifier, SyntaxToken openParenToken, ParameterListSyntax parameters, SyntaxToken closeParenToken, BlockSyntax body)
     {
         return new FunctionDeclarationSyntax(SyntaxKind.FunctionDeclaration, funcKeyword, identifier, openParenToken, parameters, closeParenToken, body);
     }
 
-    private FunctionDeclarationSyntax(SyntaxKind kind, SyntaxToken funcKeyword, SyntaxToken identifier, SyntaxToken openParenToken, ArgumentListSyntax parameters, SyntaxToken closeParenToken, BlockSyntax body)
+    private FunctionDeclarationSyntax(SyntaxKind kind, SyntaxToken funcKeyword, SyntaxToken identifier, SyntaxToken openParenToken, ParameterListSyntax parameters, SyntaxToken closeParenToken, BlockSyntax body)
         : base(kind)
     {
+        SlotCount = 6;
         FuncKeyword = funcKeyword;
         Identifier = identifier;
         OpenParenToken = openParenToken;
@@ -647,7 +741,7 @@ public class FunctionDeclarationSyntax : DeclarationSyntax
     public SyntaxToken FuncKeyword { get; }
     public SyntaxToken Identifier { get; }
     public SyntaxToken OpenParenToken { get; }
-    public ArgumentListSyntax Parameters { get; }
+    public ParameterListSyntax Parameters { get; }
     public SyntaxToken CloseParenToken { get; }
     public BlockSyntax Body { get; }
 
@@ -697,5 +791,206 @@ public class ParameterSyntax : SyntaxNode
             2 => Type,
             _ => null
         };
+    }
+}
+
+public class StructDeclarationSyntax : RootDeclarationSyntax
+{
+    public static StructDeclarationSyntax Create(SyntaxToken structKeyword, SyntaxToken identifier, SyntaxToken openBraceToken, MemberDeclarationListSyntax declarations, SyntaxToken closeBraceToken)
+    {
+        return new StructDeclarationSyntax(SyntaxKind.StructDeclaration, structKeyword, identifier, openBraceToken, declarations, closeBraceToken);
+    }
+
+    private StructDeclarationSyntax(SyntaxKind kind, SyntaxToken structKeyword, SyntaxToken identifier, SyntaxToken openBraceToken, MemberDeclarationListSyntax declarations, SyntaxToken closeBraceToken)
+        : base(kind)
+    {
+        SlotCount = 5;
+        StructKeyword = structKeyword;
+        Identifier = identifier;
+        OpenBraceToken = openBraceToken;
+        Declarations = declarations;
+        CloseBraceToken = closeBraceToken;
+        AdjustWidth(StructKeyword);
+        AdjustWidth(Identifier);
+        AdjustWidth(OpenBraceToken);
+        AdjustWidth(Declarations);
+        AdjustWidth(CloseBraceToken);
+    }
+
+    public SyntaxToken StructKeyword { get; }
+    public SyntaxToken Identifier { get; }
+    public SyntaxToken OpenBraceToken { get; }
+    public MemberDeclarationListSyntax Declarations { get; }
+    public SyntaxToken CloseBraceToken { get; }
+
+    public override SyntaxNode? GetSlot(int index)
+    {
+        return index switch
+        {
+            0 => StructKeyword,
+            1 => Identifier,
+            2 => OpenBraceToken,
+            3 => Declarations,
+            4 => CloseBraceToken,
+            _ => null
+        };
+    }
+}
+
+public class FieldDeclarationSyntax : MemberDeclarationSyntax
+{
+    public static FieldDeclarationSyntax Create(SyntaxToken identifier, SyntaxToken colonToken, TypeSyntax type, SyntaxToken semicolonToken)
+    {
+        return new FieldDeclarationSyntax(SyntaxKind.FieldDeclaration, identifier, colonToken, type, semicolonToken);
+    }
+
+    private FieldDeclarationSyntax(SyntaxKind kind, SyntaxToken identifier, SyntaxToken colonToken, TypeSyntax type, SyntaxToken semicolonToken)
+        : base(kind)
+    {
+        SlotCount = 4;
+        Identifier = identifier;
+        ColonToken = colonToken;
+        Type = type;
+        SemicolonToken = semicolonToken;
+        AdjustWidth(Identifier);
+        AdjustWidth(ColonToken);
+        AdjustWidth(Type);
+        AdjustWidth(SemicolonToken);
+    }
+
+    public SyntaxToken Identifier { get; }
+    public SyntaxToken ColonToken { get; }
+    public TypeSyntax Type { get; }
+    public SyntaxToken SemicolonToken { get; }
+
+    public override SyntaxNode? GetSlot(int index)
+    {
+        return index switch
+        {
+            0 => Identifier,
+            1 => ColonToken,
+            2 => Type,
+            3 => SemicolonToken,
+            _ => null
+        };
+    }
+}
+
+public class CompilationUnitSyntax : SyntaxNode
+{
+    public static CompilationUnitSyntax Create(RootDeclarationListSyntax declarations, SyntaxToken eofToken)
+    {
+        return new CompilationUnitSyntax(SyntaxKind.CompilationUnit, declarations, eofToken);
+    }
+
+    private CompilationUnitSyntax(SyntaxKind kind, RootDeclarationListSyntax declarations, SyntaxToken eofToken)
+        : base(kind)
+    {
+        SlotCount = 2;
+        Declarations = declarations;
+        EofToken = eofToken;
+        AdjustWidth(Declarations);
+        AdjustWidth(EofToken);
+    }
+
+    public RootDeclarationListSyntax Declarations { get; }
+    public SyntaxToken EofToken { get; }
+
+    public override SyntaxNode? GetSlot(int index)
+    {
+        return index switch
+        {
+            0 => Declarations,
+            1 => EofToken,
+            _ => null
+        };
+    }
+}
+
+public class ArgumentListSyntax : ListSyntax
+{
+    public static SeparatedListSyntaxBuilder<ArgumentSyntax, ArgumentListSyntax> GetBuilder()
+    {
+        return new SeparatedListSyntaxBuilder<ArgumentSyntax, ArgumentListSyntax>(Create);
+    }
+
+    private static ArgumentListSyntax Create(SyntaxNode[] arguments)
+    {
+        return new ArgumentListSyntax(arguments);
+    }
+
+    private ArgumentListSyntax(SyntaxNode[] arguments)
+        : base(SyntaxKind.ArgumentList, arguments)
+    {
+    }
+}
+
+public class ParameterListSyntax : ListSyntax
+{
+    public static SeparatedListSyntaxBuilder<ParameterSyntax, ParameterListSyntax> GetBuilder()
+    {
+        return new SeparatedListSyntaxBuilder<ParameterSyntax, ParameterListSyntax>(Create);
+    }
+
+    private static ParameterListSyntax Create(SyntaxNode[] parameters)
+    {
+        return new ParameterListSyntax(parameters);
+    }
+
+    private ParameterListSyntax(SyntaxNode[] parameters)
+        : base(SyntaxKind.ParameterList, parameters)
+    {
+    }
+}
+
+
+public class StatementListSyntax : ListSyntax
+{
+    public static SyntaxListBuilder<StatementSyntax, StatementListSyntax> GetBuilder()
+    {
+        return new SyntaxListBuilder<StatementSyntax, StatementListSyntax>(Create);
+    }
+
+    private StatementListSyntax(StatementSyntax[] statements)
+        : base(SyntaxKind.StatementList, statements)
+    {
+    }
+    private static StatementListSyntax Create(StatementSyntax[] statements)
+    {
+        return new StatementListSyntax(statements);
+    }
+}
+
+public class RootDeclarationListSyntax : ListSyntax
+{
+    public static SyntaxListBuilder<RootDeclarationSyntax, RootDeclarationListSyntax> GetBuilder()
+    {
+        return new SyntaxListBuilder<RootDeclarationSyntax, RootDeclarationListSyntax>(Create);
+    }
+
+    private RootDeclarationListSyntax(RootDeclarationSyntax[] declarations)
+        : base(SyntaxKind.RootDeclarationList, declarations)
+    {
+    }
+    private static RootDeclarationListSyntax Create(RootDeclarationSyntax[] declarations)
+    {
+        return new RootDeclarationListSyntax(declarations);
+    }
+}
+
+public class MemberDeclarationListSyntax : ListSyntax
+{
+    public static SyntaxListBuilder<MemberDeclarationSyntax, MemberDeclarationListSyntax> GetBuilder()
+    {
+        return new SyntaxListBuilder<MemberDeclarationSyntax, MemberDeclarationListSyntax>(Create);
+    }
+
+    private MemberDeclarationListSyntax(MemberDeclarationSyntax[] declarations)
+        : base(SyntaxKind.MemberDeclarationList, declarations)
+    {
+    }
+    private static MemberDeclarationListSyntax Create(MemberDeclarationSyntax[] declarations)
+    {
+        return new MemberDeclarationListSyntax(declarations);
     }
 }

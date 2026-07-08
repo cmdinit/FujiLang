@@ -1,14 +1,14 @@
 namespace Fuji.CodeAnalysis.Syntax;
 
-public class SeparatedListSyntaxBuilder<TNode> where TNode : SyntaxNode
+public class SeparatedListSyntaxBuilder<TNode, TList> where TNode : SyntaxNode where TList : ListSyntax
 {
-    public SeparatedListSyntaxBuilder(Func<List<SyntaxNode>, TNode> createNode)
+    private readonly List<SyntaxNode> _children = new();
+    private readonly Func<SyntaxNode[], TList> _createNode;
+
+    public SeparatedListSyntaxBuilder(Func<SyntaxNode[], TList> createNode)
     {
         _createNode = createNode;
     }
-
-    private readonly List<SyntaxNode> _children = new();
-    private readonly Func<List<SyntaxNode>, TNode> _createNode;
 
     public void AddNode(TNode node)
     {
@@ -20,8 +20,8 @@ public class SeparatedListSyntaxBuilder<TNode> where TNode : SyntaxNode
         _children.Add(separator);
     }
 
-    public TNode Build()
+    public TList Build()
     {
-        return _createNode(_children);
+        return _createNode(_children.ToArray());
     }
 }

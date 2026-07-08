@@ -81,4 +81,6 @@ public abstract class SyntaxNode
 
         return 0;
     }
+
+    public virtual bool IsList => false;
 }

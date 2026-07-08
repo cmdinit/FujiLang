@@ -25,6 +25,7 @@ public class Lexer
         kind = SyntaxKind.BadToken;
         text = string.Empty;
         start = _st.Position;
+        _st.ResetStart();
 
         if (_st.IsAtEnd)
         {

@@ -1,11 +1,11 @@
 namespace Fuji.CodeAnalysis.Syntax;
 
-public class SyntaxListBuilder<TNode> where TNode : SyntaxNode
+public class SyntaxListBuilder<TNode, TList> where TNode : SyntaxNode where TList : ListSyntax
 {
-    private readonly List<SyntaxNode> _nodes = [];
-    private readonly Func<List<SyntaxNode>, TNode> _create;
+    private readonly List<TNode> _nodes = [];
+    private readonly Func<TNode[], TList> _create;
 
-    public SyntaxListBuilder(Func<List<SyntaxNode>, TNode> create)
+    public SyntaxListBuilder(Func<TNode[], TList> create)
     {
         _create = create;
     }
@@ -15,8 +15,8 @@ public class SyntaxListBuilder<TNode> where TNode : SyntaxNode
         _nodes.Add(node);
     }
 
-    public TNode Build()
+    public TList Build()
     {
-        return _create(_nodes);
+        return _create(_nodes.ToArray());
     }
 }
